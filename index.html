@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HostelFix — Advanced Prototype</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --accent:#1e90ff; --accent-2:#28a745; --bg:#f4f7fb;
+      --card:#ffffff; --muted:#6b7280; --glass: rgba(255,255,255,0.7);
+      --danger:#e3342f;
+      --radius:12px;
+      --shadow: 0 6px 18px rgba(16,24,40,0.08);
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f7fbff, #eef4fb);color:#0f172a}
+    .app{display:flex;min-height:100vh}
+    /* SIDEBAR */
+    .sidebar{
+      width:260px;background:linear-gradient(180deg,var(--card),#f9fbff);
+      padding:20px;border-right:1px solid rgba(15,23,42,0.04);
+      box-shadow:var(--shadow);position:relative
+    }
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .logo{width:44px;height:44px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .title{font-size:16px;font-weight:700}
+    .subtitle{font-size:12px;color:var(--muted)}
+    .nav{margin-top:18px;display:flex;flex-direction:column;gap:6px}
+    .nav button{background:transparent;border:none;text-align:left;padding:10px 12px;border-radius:8px;color:#0f172a;cursor:pointer}
+    .nav button.active{background:linear-gradient(90deg,var(--accent),#4aa3ff);color:white;box-shadow:0 6px 14px rgba(30,144,255,0.12)}
+    .nav button:hover{background:#eef6ff}
+    .small{font-size:12px;color:var(--muted)}
+    .sidebar .userCard{position:absolute;bottom:20px;left:20px;right:20px;background:var(--glass);backdrop-filter:blur(6px);padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.6)}
+    /* MAIN */
+    .main{flex:1;padding:28px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+    .search{display:flex;gap:8px;align-items:center}
+    .search input{padding:9px 12px;border-radius:10px;border:1px solid #e6eefb;width:320px}
+    .cardGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:18px}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:var(--shadow)}
+    .bigCard{padding:18px}
+    h3{margin:0 0 10px 0}
+    /* forms */
+    label{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+    input[type=text],textarea,select{width:100%;padding:10px;border-radius:8px;border:1px solid #e8f0ff;margin-top:6px}
+    textarea{min-height:80px;resize:vertical}
+    .row{display:flex;gap:12px;align-items:center}
+    .btn{display:inline-block;background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .btn.secondary{background:var(--accent-2)}
+    .muted{color:var(--muted);font-size:13px}
+    .list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #eef5ff;background:linear-gradient(180deg,#fff,#fbfdff)}
+    .badge{padding:6px 8px;border-radius:999px;font-weight:600;font-size:12px}
+    .badge.low{background:#f1f8ff;color:#0b66c3}
+    .badge.med{background:#fff7ec;color:#b45309}
+    .badge.high{background:#fff1f2;color:var(--danger)}
+    .status{font-size:13px;font-weight:600}
+    .actions button{margin-left:8px}
+    /* toast */
+    .toast{position:fixed;right:20px;bottom:20px;background:#111;color:white;padding:12px 16px;border-radius:10px;box-shadow:0 8px 20px rgba(2,6,23,0.3);opacity:0;transform:translateY(12px);transition:all .28s}
+    .toast.show{opacity:1;transform:translateY(0)}
+    /* rating */
+    .stars{display:flex;gap:6px;align-items:center}
+    .stars i{cursor:pointer;font-style:normal;padding:6px;border-radius:6px}
+    .stars i.active{background:linear-gradient(90deg,#ffd54a,#ffb04d);color:#0f172a}
+    /* responsive */
+    @media (max-width:880px){
+      .sidebar{display:none}
+      .main{padding:18px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="logo">HF</div>
+        <div>
+          <div class="title">HostelFix</div>
+          <div class="subtitle small">Smart Complaint Manager</div>
+        </div>
+      </div>
+
+      <div id="menu" class="nav">
+        <button data-view="login" class="active">🔐 Login</button>
+        <button data-view="complaint">📄 Complaints</button>
+        <button data-view="notifications">🔔 Notifications</button>
+        <button data-view="dashboard">📊 Dashboard</button>
+        <button data-view="categories">🗂 Categories</button>
+        <button data-view="tasks">🧰 Tasks</button>
+        <button data-view="feedback">⭐ Feedback</button>
+        <button data-view="reports">📈 Reports</button>
+      </div>
+
+      <div class="userCard" id="userCard">
+        <div id="userName" style="font-weight:700">Guest</div>
+        <div class="small" id="userRole">Not logged in</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="search">
+          <input id="globalSearch" placeholder="Search complaints, ids, categories..." />
+        </div>
+        <div id="topRight">
+          <button class="btn" id="logoutBtn" style="display:none">Logout</button>
+        </div>
+      </div>
+
+      <!-- LOGIN -->
+      <section class="card bigCard" id="view-login">
+        <h3>Login</h3>
+        <div class="row">
+          <div style="flex:1">
+            <label>Hostel ID / Email</label>
+            <input type="text" id="loginId" placeholder="e.g. student1@hostel" />
+            <label>Password</label>
+            <input type="text" id="loginPass" placeholder="password" />
+            <div style="margin-top:12px">
+              <button class="btn" onclick="doLogin()">Login</button>
+              <button class="btn secondary" onclick="seedData()">Seed Sample Data</button>
+            </div>
+            <p class="muted" id="loginMsg"></p>
+          </div>
+          <div style="width:320px;margin-left:18px">
+            <div class="muted">Pre-seeded credentials (for demo):</div>
+            <ul class="muted">
+              <li>Student: <b>student1 / pass123</b></li>
+              <li>Admin: <b>admin1 / admin123</b></li>
+              <li>Staff: <b>staff1 / staff123</b></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMPLAINTS -->
+      <section class="card bigCard" id="view-complaint" style="display:none">
+        <h3>Raise a Complaint</h3>
+        <div class="row">
+          <div style="flex:1">
+            <label>Title</label>
+            <input id="cTitle" placeholder="Short title" />
+            <label>Category</label>
+            <select id="cCategory">
+              <option>Electrical</option>
+              <option>Plumbing</option>
+              <option>Cleanliness</option>
+              <option>Wi-Fi</option>
+              <option>Other</option>
+            </select>
+
+            <label>Priority</label>
+            <select id="cPriority"><option>Low</option><option>Medium</option><option>High</option></select>
+            <label>Description</label>
+            <textarea id="cDesc" placeholder="Describe the issue"></textarea>
+
+            <div style="margin-top:10px">
+              <button class="btn" onclick="createComplaint()">Submit Complaint</button>
+            </div>
+            <p class="muted" id="complaintMsg"></p>
+          </div>
+
+          <div style="width:380px;margin-left:18px">
+            <h4>My Complaints</h4>
+            <div style="margin-bottom:8px">
+              <select id="filterStatus"><option value="">All Status</option><option>Pending</option><option>In-Progress</option><option>Resolved</option></select>
+              <select id="filterCategory"><option value="">All Categories</option><option>Electrical</option><option>Plumbing</option><option>Cleanliness</option><option>Wi-Fi</option><option>Other</option></select>
+              <button class="btn" onclick="applyFilters()">Apply</button>
+            </div>
+            <div id="complaintList" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="card bigCard" id="view-notifications" style="display:none">
+        <h3>Notifications</h3>
+        <div id="notifs" class="list"></div>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section class="card bigCard" id="view-dashboard" style="display:none">
+        <h3>Dashboard</h3>
+        <div class="cardGrid">
+          <div class="card">
+            <div class="muted">Total Complaints</div>
+            <div style="font-size:22px;font-weight:700" id="statTotal">0</div>
+          </div>
+          <div class="card">
+            <div class="muted">Resolved</div>
+            <div style="font-size:22px;font-weight:700" id="statResolved">0</div>
+          </div>
+          <div class="card">
+            <div class="muted">Pending</div>
+            <div style="font-size:22px;font-weight:700" id="statPending">0</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-top:12px">
+          <div style="flex:1" class="card">
+            <h4>Complaint Trend (by category)</h4>
+            <canvas id="chartCategory" height="160"></canvas>
+          </div>
+          <div style="width:380px" class="card">
+            <h4>Status Split</h4>
+            <canvas id="chartStatus" height="160"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- CATEGORIES -->
+      <section class="card bigCard" id="view-categories" style="display:none">
+        <h3>Categories & Priority</h3>
+        <div class="row">
+          <div style="flex:1">
+            <label>Category name</label>
+            <input id="newCat" placeholder="e.g. Electrical" />
+            <label>Default priority</label>
+            <select id="newCatPriority"><option>Low</option><option>Medium</option><option>High</option></select>
+            <div style="margin-top:10px"><button class="btn" onclick="addCategory()">Add Category</button></div>
+          </div>
+          <div style="width:360px;margin-left:18px">
+            <h4>Available Categories</h4>
+            <div id="catList" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TASKS -->
+      <section class="card bigCard" id="view-tasks" style="display:none">
+        <h3>Tasks (Admin)</h3>
+        <div class="row">
+          <div style="flex:1">
+            <label>Assign complaint ID</label>
+            <input id="assignCid" placeholder="C123" />
+            <label>Assign to staff (userID)</label>
+            <input id="assignTo" placeholder="staff1" />
+            <div style="margin-top:10px">
+              <button class="btn" onclick="assignTask()">Assign</button>
+            </div>
+          </div>
+          <div style="width:360px;margin-left:18px">
+            <h4>Assigned Tasks</h4>
+            <div id="taskList" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEEDBACK -->
+      <section class="card bigCard" id="view-feedback" style="display:none">
+        <h3>Feedback & Rating</h3>
+        <div class="row">
+          <div style="flex:1">
+            <label>Complaint ID</label>
+            <input id="fbCid" placeholder="C123" />
+            <label>Rating</label>
+            <div class="stars" id="starWrap">
+              <i data-value="1">★</i><i data-value="2">★</i><i data-value="3">★</i><i data-value="4">★</i><i data-value="5">★</i>
+            </div>
+            <input id="fbRating" type="hidden" />
+            <label>Comments</label>
+            <textarea id="fbComment"></textarea>
+            <div style="margin-top:10px"><button class="btn" onclick="submitFeedback()">Send Feedback</button></div>
+            <p id="fbMsg" class="muted"></p>
+          </div>
+          <div style="width:360px;margin-left:18px">
+            <h4>Feedback History</h4>
+            <div id="fbList" class="list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="card bigCard" id="view-reports" style="display:none">
+        <h3>Reports & Export</h3>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="btn" onclick="exportReport()">Export Summary (CSV)</button>
+          <div class="muted">Click to download a simple CSV summary</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    /*******************************************
+     * HostelFix Advanced Prototype (Offline)
+     * Single-file SPA using localStorage
+     *******************************************/
+    // ---------- Helpers ----------
+    const $ = id => document.getElementById(id);
+    const toast = txt => {
+      const t = $('toast'); t.textContent = txt; t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 2600);
+    };
+
+    // ---------- Seed / sample users ----------
+    const sampleUsers = [
+      { id:'student1', name:'Student One', role:'student', pass:'pass123' },
+      { id:'admin1', name:'Admin One', role:'admin', pass:'admin123' },
+      { id:'staff1', name:'Staff One', role:'staff', pass:'staff123' }
+    ];
+    function seedData(){
+      if(!localStorage.getItem('hf_users')){
+        localStorage.setItem('hf_users', JSON.stringify(sampleUsers));
+      }
+      if(!localStorage.getItem('hf_categories')){
+        localStorage.setItem('hf_categories', JSON.stringify(['Electrical','Plumbing','Cleanliness','Wi-Fi','Other']));
+      }
+      if(!localStorage.getItem('hf_complaints')){
+        const demo = [
+          { id:'C101', title:'Fan not working', category:'Electrical', priority:'High', status:'Pending', raisedBy:'student1', assignedTo:null, createdAt:Date.now()-86400000 },
+          { id:'C102', title:'Leak in washroom', category:'Plumbing', priority:'Medium', status:'In-Progress', raisedBy:'student1', assignedTo:'staff1', createdAt:Date.now()-43200000 }
+        ];
+        localStorage.setItem('hf_complaints', JSON.stringify(demo));
+      }
+      if(!localStorage.getItem('hf_feedback')) localStorage.setItem('hf_feedback', JSON.stringify([]));
+      toast('Sample data seeded');
+      refreshAll();
+    }
+
+    // ---------- Storage helpers ----------
+    const storageGet = key => JSON.parse(localStorage.getItem(key) || 'null');
+    const storageSet = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+    const uid = () => 'C'+Math.floor(1000 + Math.random()*9000);
+
+    // ---------- Navigation & view control ----------
+    const menuButtons = document.querySelectorAll('#menu button');
+    menuButtons.forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+
+    function showView(view){
+      // hide all
+      document.querySelectorAll('[id^="view-"]').forEach(v => v.style.display = 'none');
+      // map view to section id
+      const map = { login:'view-login', complaint:'view-complaint', notifications:'view-notifications',
+        dashboard:'view-dashboard', categories:'view-categories', tasks:'view-tasks', feedback:'view-feedback', reports:'view-reports'
+      };
+      const el = $(map[view] || 'view-login');
+      el.style.display = 'block';
+      // highlight menu btn
+      menuButtons.forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+      // refresh content for some views
+      if(view==='complaint') renderComplaints();
+      if(view==='dashboard') renderDashboard();
+      if(view==='categories') renderCategories();
+      if(view==='tasks') renderTasks();
+      if(view==='notifications') renderNotifs();
+      if(view==='feedback') renderFeedbackList();
+    }
+
+    // ---------- Auth ----------
+    let currentUser = null;
+    function doLogin(){
+      const id = $('loginId').value.trim();
+      const pass = $('loginPass').value.trim();
+      const users = storageGet('hf_users') || [];
+      const u = users.find(x=> (x.id===id || x.id===id.toLowerCase()) && x.pass===pass);
+      if(u){
+        currentUser = u;
+        $('loginMsg').textContent = `Welcome, ${u.name} (${u.role})`;
+        $('loginMsg').style.color = 'green';
+        $('userName').textContent = u.name;
+        $('userRole').textContent = u.role;
+        $('logoutBtn').style.display = 'inline-block';
+        toast('Logged in');
+        showView('complaint');
+      } else {
+        $('loginMsg').textContent = 'Invalid credentials';
+        $('loginMsg').style.color = 'red';
+      }
+    }
+    $('logoutBtn').addEventListener('click', ()=>{ currentUser=null; $('userName').textContent='Guest'; $('userRole').textContent='Not logged in'; $('logoutBtn').style.display='none'; showView('login'); });
+
+    // ---------- Complaint CRUD ----------
+    function createComplaint(){
+      if(!currentUser){ toast('Please login first'); showView('login'); return; }
+      const title = $('cTitle').value.trim();
+      const category = $('cCategory').value;
+      const priority = $('cPriority').value;
+      const desc = $('cDesc').value.trim();
+      if(!title || !desc){ $('complaintMsg').textContent='Title & description required'; $('complaintMsg').style.color='red'; return; }
+      const complaints = storageGet('hf_complaints') || [];
+      const newC = { id: uid(), title, category, priority, description:desc, status:'Pending', raisedBy: currentUser.id, assignedTo:null, createdAt: Date.now() };
+      complaints.unshift(newC);
+      storageSet('hf_complaints', complaints);
+      $('complaintMsg').textContent='Complaint submitted';
+      $('complaintMsg').style.color='green';
+      $('cTitle').value=''; $('cDesc').value='';
+      renderComplaints();
+      // create notification
+      pushNotif(`New complaint ${newC.id} submitted by ${currentUser.name}`);
+      renderDashboard();
+    }
+
+    function renderComplaints(){
+      const list = $('complaintList');
+      list.innerHTML='';
+      const complaints = storageGet('hf_complaints') || [];
+      const q = $('globalSearch').value.trim().toLowerCase();
+      const fStatus = $('filterStatus').value;
+      const fCat = $('filterCategory').value;
+      const filtered = complaints.filter(c=>{
+        if(fStatus && c.status!==fStatus) return false;
+        if(fCat && c.category!==fCat) return false;
+        if(q && !(c.id.toLowerCase().includes(q) || c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q))) return false;
+        return true;
+      });
+
+      if(!filtered.length){ list.innerHTML = '<div class="muted">No complaints found</div>'; return; }
+
+      filtered.forEach(c=>{
+        const item = document.createElement('div'); item.className='list-item';
+        const left = document.createElement('div');
+        left.innerHTML = `<div style="font-weight:700">${c.id} — ${c.title}</div><div class="muted">${c.category} • ${new Date(c.createdAt).toLocaleString()}</div>`;
+        const right = document.createElement('div'); right.style.textAlign='right';
+        const badge = document.createElement('div'); badge.className='badge ' + (c.priority==='High'?'high':(c.priority==='Medium'?'med':'low')); badge.textContent=c.priority;
+        const status = document.createElement('div'); status.className='status muted'; status.textContent=c.status;
+        right.appendChild(badge); right.appendChild(status);
+
+        const actions = document.createElement('div'); actions.className='actions';
+        // view
+        const viewBtn = document.createElement('button'); viewBtn.className='btn'; viewBtn.textContent='View';
+        viewBtn.onclick = ()=> viewComplaintDetails(c.id);
+        actions.appendChild(viewBtn);
+
+        // admin-only assign/unassign / change status
+        if(currentUser && currentUser.role==='admin'){
+          const assignBtn = document.createElement('button'); assignBtn.className='btn secondary'; assignBtn.textContent='Assign';
+          assignBtn.onclick = ()=> openAssignPopup(c.id);
+          actions.appendChild(assignBtn);
+        }
+
+        // staff can mark resolved/inprogress
+        if(currentUser && currentUser.role==='staff'){
+          if(c.status!=='Resolved'){
+            const prog = document.createElement('button'); prog.className='btn'; prog.textContent='Mark In-Progress';
+            prog.onclick = ()=> updateStatus(c.id,'In-Progress');
+            const res = document.createElement('button'); res.className='btn secondary'; res.textContent='Mark Resolved';
+            res.onclick = ()=> updateStatus(c.id,'Resolved');
+            actions.appendChild(prog); actions.appendChild(res);
+          }
+        }
+
+        item.appendChild(left);
+        item.appendChild(right);
+        item.appendChild(actions);
+        list.appendChild(item);
+      });
+    }
+
+    function viewComplaintDetails(cid){
+      const complaints = storageGet('hf_complaints') || [];
+      const c = complaints.find(x=>x.id===cid);
+      if(!c) return toast('Not found');
+      // simple modal-like details (alert for demo)
+      alert(`ID: ${c.id}\nTitle: ${c.title}\nCategory: ${c.category}\nPriority: ${c.priority}\nStatus: ${c.status}\nAssignedTo: ${c.assignedTo || 'None'}\n\nDesc: ${c.description}`);
+    }
+
+    function updateStatus(cid, newStatus){
+      const complaints = storageGet('hf_complaints') || [];
+      const idx = complaints.findIndex(x=>x.id===cid); if(idx<0) return;
+      complaints[idx].status = newStatus;
+      if(newStatus==='Resolved') complaints[idx].resolvedAt = Date.now();
+      storageSet('hf_complaints', complaints);
+      toast(`Status updated to ${newStatus}`);
+      renderComplaints(); renderDashboard();
+    }
+
+    // ---------- Notifications ----------
+    function pushNotif(msg){
+      const notifs = storageGet('hf_notifs') || [];
+      notifs.unshift({ id: 'N'+Math.floor(Math.random()*9000+100), msg, time: Date.now() });
+      storageSet('hf_notifs', notifs.slice(0,50));
+      renderNotifs();
+    }
+    function renderNotifs(){
+      const el = $('notifs'); el.innerHTML='';
+      const notifs = storageGet('hf_notifs') || [];
+      if(!notifs.length) el.innerHTML='<div class="muted">No notifications</div>';
+      notifs.forEach(n=>{
+        const d = document.createElement('div'); d.className='list-item'; d.innerHTML = `<div>${n.msg}</div><div class="muted">${new Date(n.time).toLocaleString()}</div>`;
+        el.appendChild(d);
+      });
+    }
+
+    // ---------- Categories ----------
+    function renderCategories(){
+      const cats = storageGet('hf_categories') || [];
+      const el = $('catList'); el.innerHTML='';
+      cats.forEach(c=>{
+        const item = document.createElement('div'); item.className='list-item'; item.innerHTML = `<div>${c}</div><div class="muted">—</div>`;
+        el.appendChild(item);
+      });
+    }
+    function addCategory(){
+      const name = $('newCat').value.trim(); if(!name) return toast('Enter name');
+      const cats = storageGet('hf_categories') || []; if(cats.includes(name)) return toast('Already exists');
+      cats.push(name); storageSet('hf_categories', cats); $('newCat').value=''; renderCategories(); toast('Category added');
+    }
+
+    // ---------- Tasks / Assignment (Admin) ----------
+    function assignTask(){
+      if(!currentUser || currentUser.role!=='admin') return toast('Admin only');
+      const cid = $('assignCid').value.trim(); const staff = $('assignTo').value.trim();
+      const complaints = storageGet('hf_complaints') || []; const idx = complaints.findIndex(x=>x.id===cid);
+      if(idx<0) return toast('Complaint not found');
+      complaints[idx].assignedTo = staff; complaints[idx].status = 'In-Progress';
+      storageSet('hf_complaints', complaints);
+      pushNotif(`Complaint ${cid} assigned to ${staff}`);
+      renderTasks(); renderComplaints(); renderDashboard();
+    }
+    function renderTasks(){
+      const el = $('taskList'); el.innerHTML='';
+      const complaints = storageGet('hf_complaints') || [];
+      const assigned = complaints.filter(c=>c.assignedTo);
+      if(!assigned.length) { el.innerHTML='<div class="muted">No tasks</div>'; return; }
+      assigned.forEach(t=>{
+        const div = document.createElement('div'); div.className='list-item';
+        div.innerHTML = `<div style="font-weight:700">${t.id} — ${t.title}</div><div class="muted">${t.assignedTo}</div>`;
+        el.appendChild(div);
+      });
+    }
+
+    // ---------- Feedback ----------
+    // star rating UI
+    document.querySelectorAll('#starWrap i').forEach(i=>{
+      i.addEventListener('mouseover', ()=> setStars(i.dataset.value));
+      i.addEventListener('mouseout', ()=> setStars($('fbRating').value || 0));
+      i.addEventListener('click', ()=> { $('fbRating').value = i.dataset.value; setStars(i.dataset.value); });
+    });
+    function setStars(n){
+      const stars = document.querySelectorAll('#starWrap i');
+      stars.forEach(s => s.classList.toggle('active', Number(s.dataset.value) <= Number(n)));
+    }
+function submitFeedback(){
+  if(!currentUser) return toast('Login first');
+
+  // ❌ Block staff from giving feedback
+  if(currentUser.role === 'staff'){
+    $('fbMsg').textContent = 'Staff cannot give feedback';
+    $('fbMsg').style.color = 'red';
+    return;
+  }
+
+  // ❌ Block admin from giving feedback
+  if(currentUser.role === 'admin'){
+    $('fbMsg').textContent = 'Admin cannot give feedback';
+    $('fbMsg').style.color = 'red';
+    return;
+  }
+
+  const cid = $('fbCid').value.trim();
+  const rating = Number($('fbRating').value || 0);
+  const comment = $('fbComment').value.trim();
+
+  if(!cid || !rating){
+    $('fbMsg').textContent = 'Complaint ID and rating required';
+    $('fbMsg').style.color = 'red';
+    return;
+  }
+
+  const complaints = storageGet('hf_complaints') || [];
+  const comp = complaints.find(c => c.id === cid);
+
+  if(!comp){
+    $('fbMsg').textContent = 'Invalid Complaint ID';
+    $('fbMsg').style.color = 'red';
+    return;
+  }
+
+  // ❌ Only student who raised it can give feedback
+  if(currentUser.role === 'student' && comp.raisedBy !== currentUser.id){
+    $('fbMsg').textContent = 'You can only give feedback on your own complaints';
+    $('fbMsg').style.color = 'red';
+    return;
+  }
+
+  // ---- Save feedback (only students) ----
+  const f = storageGet('hf_feedback') || [];
+  f.unshift({
+    id:'F'+Math.floor(Math.random()*9000+100),
+    complaintId: cid,
+    rating,
+    comment,
+    by: currentUser.id,
+    time: Date.now()
+  });
+
+  storageSet('hf_feedback', f);
+
+  $('fbMsg').textContent = 'Thank you for the feedback';
+  $('fbMsg').style.color = 'green';
+
+  $('fbCid').value = '';
+  $('fbComment').value = '';
+  $('fbRating').value = '';
+  setStars(0);
+
+  renderFeedbackList();
+  renderDashboard();
+}
+
+    function renderFeedbackList(){
+      const el = $('fbList'); el.innerHTML='';
+      const f = storageGet('hf_feedback') || [];
+      if(!f.length){ el.innerHTML='<div class="muted">No feedback yet</div>'; return; }
+      f.forEach(x=>{
+        const d = document.createElement('div'); d.className='list-item'; d.innerHTML = `<div><b>${x.id}</b> • ${x.complaintId} • ${'★'.repeat(x.rating)}</div><div class="muted">${new Date(x.time).toLocaleString()}</div>`;
+        el.appendChild(d);
+      });
+    }
+
+    // ---------- Dashboard charts & stats ----------
+    let chartCategory=null, chartStatus=null;
+    function renderDashboard(){
+      const complaints = storageGet('hf_complaints') || [];
+      const total = complaints.length;
+      const resolved = complaints.filter(c=>c.status==='Resolved').length;
+      const pending = complaints.filter(c=>c.status==='Pending').length;
+      $('statTotal').textContent = total;
+      $('statResolved').textContent = resolved;
+      $('statPending').textContent = pending;
+
+      // category counts
+      const byCat = complaints.reduce((acc,c)=>{
+        acc[c.category] = (acc[c.category]||0)+1; return acc;
+      }, {});
+      const catLabels = Object.keys(byCat);
+      const catData = Object.values(byCat);
+
+      // status counts
+      const statusCounts = { Pending:0, 'In-Progress':0, Resolved:0 };
+      complaints.forEach(c=> statusCounts[c.status] = (statusCounts[c.status]||0)+1 );
+
+      // render charts
+      const ctxC = $('chartCategory').getContext('2d');
+      if(chartCategory) chartCategory.destroy();
+      chartCategory = new Chart(ctxC, {
+        type:'bar',
+        data:{ labels: catLabels, datasets:[{ label:'Count', data:catData, backgroundColor: catLabels.map((l,i)=>['#7cc5ff','#ffd77a','#ff9aa2','#c7f9cc','#d6b3ff'][i%5]) }] },
+        options:{ responsive:true, plugins:{ legend:{display:false} } }
+      });
+
+      const ctxS = $('chartStatus').getContext('2d');
+      if(chartStatus) chartStatus.destroy();
+      chartStatus = new Chart(ctxS, {
+        type:'doughnut',
+        data:{ labels: Object.keys(statusCounts), datasets:[{ data: Object.values(statusCounts), backgroundColor:['#f6ad55','#60a5fa','#34d399'] }] },
+        options:{ responsive:true }
+      });
+    }
+
+    // ---------- Filters & search ----------
+    function applyFilters(){ renderComplaints(); }
+
+    document.getElementById('globalSearch').addEventListener('input', ()=> renderComplaints());
+
+    // ---------- Reports export ----------
+    function exportReport(){
+      const complaints = storageGet('hf_complaints') || [];
+      const csv = ['id,title,category,priority,status,assignedTo,raisedBy,createdAt'].concat(
+        complaints.map(c => `${c.id},"${(c.title||'').replace(/"/g,'""')}",${c.category},${c.priority},${c.status},${c.assignedTo||''},${c.raisedBy||''},${new Date(c.createdAt).toISOString()}`)
+      ).join('\n');
+      const blob = new Blob([csv], { type:'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'hostelfix_report.csv'; a.click(); URL.revokeObjectURL(url);
+      toast('CSV exported');
+    }
+
+    // ---------- Init / refresh ----------
+    function refreshAll(){
+      renderCategories(); renderComplaints(); renderNotifs(); renderTasks(); renderFeedbackList(); renderDashboard();
+    }
+    // initialize sample data and UI
+    if(!localStorage.getItem('hf_users')) seedData();
+    refreshAll();
+    // show login view on load
+    showView('login');
+
+  </script>
+</body>
+</html>
